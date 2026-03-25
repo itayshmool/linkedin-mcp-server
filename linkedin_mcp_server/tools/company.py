@@ -14,7 +14,10 @@ from linkedin_mcp_server.constants import TOOL_TIMEOUT_SECONDS
 from linkedin_mcp_server.dependencies import get_ready_extractor
 from linkedin_mcp_server.error_handler import raise_tool_error
 from linkedin_mcp_server.scraping import parse_company_sections
-from linkedin_mcp_server.scraping.extractor import _RATE_LIMITED_MSG
+from linkedin_mcp_server.scraping.extractor import (
+    _RATE_LIMITED_MSG,
+    _validate_identifier,
+)
 from linkedin_mcp_server.scraping.link_metadata import Reference
 
 logger = logging.getLogger(__name__)
@@ -108,6 +111,7 @@ def register_company_tools(mcp: FastMCP) -> None:
             extractor = extractor or await get_ready_extractor(
                 ctx, tool_name="get_company_posts"
             )
+            company_name = _validate_identifier(company_name, "company_name")
             logger.info("Scraping company posts: %s", company_name)
 
             await ctx.report_progress(

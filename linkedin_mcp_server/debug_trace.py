@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from typing import Any, Literal
 
-from linkedin_mcp_server.common_utils import slugify_fragment
+from linkedin_mcp_server.common_utils import secure_mkdir, slugify_fragment
 from linkedin_mcp_server.session_state import auth_root_dir, get_source_profile_dir
 
 TraceMode = Literal["off", "on_error", "always"]
@@ -23,17 +23,17 @@ _EXPLICIT_TRACE_DIR = False
 
 def _trace_mode() -> TraceMode:
     raw = os.getenv("LINKEDIN_TRACE_MODE", "").strip().lower()
-    if raw in {"off", "false", "0", "no"}:
-        return "off"
+    if raw in {"on_error", "on-error", "onerror", "error"}:
+        return "on_error"
     if raw in {"always", "keep", "persist"}:
         return "always"
-    return "on_error"
+    return "off"
 
 
 def _trace_root() -> Path:
     source_profile = _safe_source_profile_dir()
     root = auth_root_dir(source_profile) / "trace-runs"
-    root.mkdir(parents=True, exist_ok=True)
+    secure_mkdir(root)
     return root
 
 
@@ -71,7 +71,7 @@ def mark_trace_for_retention() -> Path | None:
     global _TRACE_KEEP
     trace_dir = get_trace_dir()
     if trace_dir is not None:
-        trace_dir.mkdir(parents=True, exist_ok=True)
+        secure_mkdir(trace_dir)
         _TRACE_KEEP = True
     return trace_dir
 
@@ -122,9 +122,9 @@ async def record_page_trace(
     if trace_dir is None:
         return
 
-    trace_dir.mkdir(parents=True, exist_ok=True)
+    secure_mkdir(trace_dir)
     screenshot_dir = trace_dir / "screens"
-    screenshot_dir.mkdir(parents=True, exist_ok=True)
+    secure_mkdir(screenshot_dir)
     step_id = next(_TRACE_COUNTER)
     slug = _slugify_step(step) or "step"
 
@@ -180,5 +180,7 @@ async def record_page_trace(
         "extra": extra or {},
     }
 
-    with (trace_dir / "trace.jsonl").open("a", encoding="utf-8") as fh:
+    trace_file = trace_dir / "trace.jsonl"
+    fd = os.open(str(trace_file), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    with os.fdopen(fd, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(payload, ensure_ascii=True) + "\n")

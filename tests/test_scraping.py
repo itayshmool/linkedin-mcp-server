@@ -54,7 +54,7 @@ class TestBuildJobSearchUrl:
         url = LinkedInExtractor._build_job_search_url(
             "python", experience_level="entry,director"
         )
-        assert "f_E=2,5" in url
+        assert "f_E=2%2C5" in url
 
     def test_work_type_normalization(self):
         url = LinkedInExtractor._build_job_search_url("python", work_type="remote")
@@ -64,7 +64,7 @@ class TestBuildJobSearchUrl:
         url = LinkedInExtractor._build_job_search_url(
             "python", work_type="on_site,hybrid"
         )
-        assert "f_WT=1,3" in url
+        assert "f_WT=1%2C3" in url
 
     def test_easy_apply(self):
         url = LinkedInExtractor._build_job_search_url("python", easy_apply=True)
@@ -86,7 +86,7 @@ class TestBuildJobSearchUrl:
         url = LinkedInExtractor._build_job_search_url(
             "python", job_type="full_time,contract"
         )
-        assert "f_JT=F,C" in url
+        assert "f_JT=F%2CC" in url
 
     def test_job_type_passthrough(self):
         url = LinkedInExtractor._build_job_search_url("python", job_type="F")
@@ -105,7 +105,7 @@ class TestBuildJobSearchUrl:
         assert "keywords=python" in url
         assert "location=Berlin" in url
         assert "f_TPR=r604800" in url
-        assert "f_E=2,4" in url
+        assert "f_E=2%2C4" in url
         assert "f_WT=2" in url
         assert "f_EA=true" in url
         assert "sortBy=DD" in url

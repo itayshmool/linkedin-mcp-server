@@ -38,6 +38,7 @@ def _required_issue_form_labels() -> list[str]:
 
 def test_build_issue_diagnostics_includes_existing_issues(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+    monkeypatch.setenv("LINKEDIN_TRACE_MODE", "on_error")
     monkeypatch.setattr(
         "linkedin_mcp_server.error_diagnostics._find_existing_issues",
         lambda payload: [

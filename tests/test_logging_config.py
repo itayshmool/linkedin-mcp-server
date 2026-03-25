@@ -17,6 +17,7 @@ def test_configure_logging_registers_trace_cleanup_once(monkeypatch, tmp_path):
     registrations = []
 
     monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+    monkeypatch.setenv("LINKEDIN_TRACE_MODE", "on_error")
     monkeypatch.setattr(
         "linkedin_mcp_server.logging_config.atexit.register",
         lambda fn: registrations.append(fn),
@@ -36,6 +37,7 @@ def test_registered_trace_cleanup_removes_ephemeral_trace_dir(monkeypatch, tmp_p
     registrations = []
 
     monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+    monkeypatch.setenv("LINKEDIN_TRACE_MODE", "on_error")
     monkeypatch.setattr(
         "linkedin_mcp_server.logging_config.atexit.register",
         lambda fn: registrations.append(fn),

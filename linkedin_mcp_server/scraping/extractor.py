@@ -82,11 +82,33 @@ _WORK_TYPE_MAP = {"on_site": "1", "remote": "2", "hybrid": "3"}
 
 _SORT_BY_MAP = {"date": "DD", "relevance": "R"}
 
+# Pattern for safe LinkedIn identifiers (usernames, company slugs, job IDs).
+# LinkedIn identifiers contain alphanumeric characters, hyphens, underscores,
+# and periods.  No slashes, query strings, or other URL-significant characters.
+_SAFE_IDENTIFIER_RE = re.compile(r"^[a-zA-Z0-9._-]+$")
+
+
+def _validate_identifier(value: str, label: str) -> str:
+    """Validate that a value is a safe LinkedIn URL path segment."""
+    value = value.strip()
+    if not value:
+        raise ValueError(f"{label} must not be empty")
+    if not _SAFE_IDENTIFIER_RE.match(value):
+        raise ValueError(
+            f"{label} contains invalid characters: {value!r}. "
+            f"Only letters, digits, hyphens, underscores, and periods are allowed."
+        )
+    return value
+
 
 def _normalize_csv(value: str, mapping: dict[str, str]) -> str:
-    """Normalize a comma-separated filter value using the provided mapping."""
+    """Normalize a comma-separated filter value using the provided mapping.
+
+    Known values are mapped to their LinkedIn API equivalents. Unknown values
+    are URL-encoded to prevent injection.
+    """
     parts = [v.strip() for v in value.split(",")]
-    return ",".join(mapping.get(p, p) for p in parts)
+    return quote_plus(",".join(mapping.get(p, p) for p in parts))
 
 
 # Patterns that mark the start of LinkedIn page chrome (sidebar/footer).
@@ -557,6 +579,7 @@ class LinkedInExtractor:
             {url, sections: {name: text}}
         """
         requested = requested | {"main_profile"}
+        username = _validate_identifier(username, "linkedin_username")
         base_url = f"https://www.linkedin.com/in/{username}"
         sections: dict[str, str] = {}
         references: dict[str, list[Reference]] = {}
@@ -616,6 +639,7 @@ class LinkedInExtractor:
             {url, sections: {name: text}}
         """
         requested = requested | {"about"}
+        company_name = _validate_identifier(company_name, "company_name")
         base_url = f"https://www.linkedin.com/company/{company_name}"
         sections: dict[str, str] = {}
         references: dict[str, list[Reference]] = {}
@@ -672,6 +696,7 @@ class LinkedInExtractor:
         Returns:
             {url, sections: {name: text}}
         """
+        job_id = _validate_identifier(job_id, "job_id")
         url = f"https://www.linkedin.com/jobs/view/{job_id}/"
         extracted = await self.extract_page(url, section_name="job_posting")
 

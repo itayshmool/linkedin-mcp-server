@@ -97,17 +97,20 @@ def build_issue_diagnostics(
 def format_tool_error_with_diagnostics(
     message: str, diagnostics: dict[str, Any]
 ) -> str:
-    """Append issue-report locations to a tool-facing error message."""
+    """Append issue-report locations to a tool-facing error message.
+
+    Only exposes basenames (not full paths) to avoid leaking filesystem layout.
+    """
     lines = [message, "", "Diagnostics:"]
     if diagnostics.get("issue_template_path"):
-        lines.append(f"- Issue template: {diagnostics['issue_template_path']}")
+        lines.append(
+            f"- Issue template: {Path(diagnostics['issue_template_path']).name}"
+        )
     runtime = diagnostics.get("runtime") or {}
     if runtime.get("trace_dir"):
-        lines.append(f"- Trace artifacts: {runtime['trace_dir']}")
+        lines.append(f"- Trace artifacts: {Path(runtime['trace_dir']).name}")
     if runtime.get("log_path"):
-        lines.append(f"- Server log: {runtime['log_path']}")
-    if runtime.get("suggested_gist_command"):
-        lines.append(f"- Suggested gist command: {runtime['suggested_gist_command']}")
+        lines.append(f"- Server log: {Path(runtime['log_path']).name}")
     lines.append(f"- Runtime: {runtime.get('current_runtime_id', 'unknown')}")
     existing_issues = diagnostics.get("existing_issues") or []
     if existing_issues:

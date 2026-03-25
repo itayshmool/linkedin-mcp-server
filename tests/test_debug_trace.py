@@ -22,8 +22,15 @@ def teardown_function():
     reset_trace_state_for_testing()
 
 
-def test_get_trace_dir_creates_ephemeral_dir_by_default(monkeypatch, tmp_path):
+def test_get_trace_dir_returns_none_by_default(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+
+    assert get_trace_dir() is None
+
+
+def test_get_trace_dir_creates_ephemeral_dir_when_on_error(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+    monkeypatch.setenv("LINKEDIN_TRACE_MODE", "on_error")
 
     trace_dir = get_trace_dir()
 
@@ -32,8 +39,9 @@ def test_get_trace_dir_creates_ephemeral_dir_by_default(monkeypatch, tmp_path):
     assert "trace-runs" in str(trace_dir)
 
 
-def test_cleanup_trace_dir_removes_ephemeral_dir_by_default(monkeypatch, tmp_path):
+def test_cleanup_trace_dir_removes_ephemeral_dir(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+    monkeypatch.setenv("LINKEDIN_TRACE_MODE", "on_error")
     trace_dir = get_trace_dir()
     assert trace_dir is not None
 
@@ -44,6 +52,7 @@ def test_cleanup_trace_dir_removes_ephemeral_dir_by_default(monkeypatch, tmp_pat
 
 def test_mark_trace_for_retention_keeps_trace_dir(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+    monkeypatch.setenv("LINKEDIN_TRACE_MODE", "on_error")
     trace_dir = mark_trace_for_retention()
     assert trace_dir is not None
 
@@ -75,6 +84,7 @@ def test_trace_mode_off_disables_trace_dir(monkeypatch, tmp_path):
 @pytest.mark.asyncio
 async def test_reset_trace_state_resets_step_counter(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_DATA_DIR", str(tmp_path / "profile"))
+    monkeypatch.setenv("LINKEDIN_TRACE_MODE", "on_error")
 
     page = MagicMock()
     page.url = "https://www.linkedin.com/feed/"
