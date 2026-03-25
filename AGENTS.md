@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## LinkedIn MCP Safety Rules
+
+The `linkedin-mcp` server controls a real authenticated LinkedIn session. Follow these rules strictly:
+
+- **READ ONLY.** Never attempt to post, comment, like, share, react, send messages, send connection requests, or perform any write action on LinkedIn. This MCP is for reading and searching only.
+- **Never navigate the browser to any LinkedIn URL that performs a write action** (e.g., posting endpoints, messaging endpoints, connection request endpoints).
+- **Always confirm with the user before running any LinkedIn MCP tool.** Do not call LinkedIn tools proactively or autonomously.
+- **Never chain multiple LinkedIn tool calls without user approval** between each call.
+- **Do not expose scraped personal data** (emails, phone numbers, addresses) outside the conversation unless the user explicitly requests it.
+
 ## Development Commands
 
 - Use `uv` for dependency management: `uv sync` (dev: `uv sync --group dev`)
