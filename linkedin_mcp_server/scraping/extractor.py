@@ -572,6 +572,47 @@ class LinkedInExtractor:
             references=build_references(raw_result["references"], section_name),
         )
 
+    async def _extract_profile_image_url(self) -> str | None:
+        """Extract the profile photo URL from the currently loaded profile page.
+
+        Uses a minimal selector strategy: finds the first large img sourced from
+        LinkedIn's media CDN that isn't a background/banner image.
+        Upgrades to 400x400 resolution when possible.
+        """
+        url = await self._page.evaluate(
+            """() => {
+                const imgs = document.querySelectorAll('img[src]');
+                for (const img of imgs) {
+                    const src = img.src || '';
+                    if (!src.includes('media.licdn.com') && !src.includes('media-exp')) continue;
+                    const w = img.naturalWidth || img.width || 0;
+                    const h = img.naturalHeight || img.height || 0;
+                    if (w > 0 && h > 0 && w / h > 3) continue;
+                    if (w > 0 && w < 50) continue;
+                    if (src.includes('ghost') || src.includes('default-avatar')) continue;
+                    return src;
+                }
+                return null;
+            }"""
+        )
+        if url:
+            url = re.sub(
+                r"profile-displayphoto-scale_\d+_\d+",
+                "profile-displayphoto-scale_400_400",
+                url,
+            )
+        return url
+
+    async def _download_profile_image(self, image_url: str) -> bytes | None:
+        """Download a profile image using the browser's authenticated session."""
+        try:
+            response = await self._page.context.request.get(image_url)
+            if response.ok:
+                return await response.body()
+        except Exception as e:
+            logger.debug("Failed to download profile image: %s", e)
+        return None
+
     async def scrape_person(self, username: str, requested: set[str]) -> dict[str, Any]:
         """Scrape a person profile with configurable sections.
 
@@ -584,6 +625,7 @@ class LinkedInExtractor:
         sections: dict[str, str] = {}
         references: dict[str, list[Reference]] = {}
         section_errors: dict[str, dict[str, Any]] = {}
+        profile_image_url: str | None = None
 
         first = True
         for section_name, (suffix, is_overlay) in PERSON_SECTIONS.items():
@@ -609,6 +651,13 @@ class LinkedInExtractor:
                         references[section_name] = extracted.references
                 elif extracted.error:
                     section_errors[section_name] = extracted.error
+
+                if section_name == "main_profile" and not profile_image_url:
+                    try:
+                        profile_image_url = await self._extract_profile_image_url()
+                    except Exception as e:
+                        logger.debug("Could not extract profile image: %s", e)
+
             except LinkedInScraperException:
                 raise
             except Exception as e:
@@ -624,6 +673,8 @@ class LinkedInExtractor:
             "url": f"{base_url}/",
             "sections": sections,
         }
+        if profile_image_url:
+            result["profile_image_url"] = profile_image_url
         if references:
             result["references"] = references
         if section_errors:
